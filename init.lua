@@ -17,15 +17,22 @@ if (not DB_FILENAME) or (DB_FILENAME == "") then
 	DB_FILENAME = DEF_DB_FILENAME
 end
 
-local function make_logger(level)
+local function make_logger(level, silent)
 	return function(text, ...)
 		minetest.log(level, "[xban] "..text:format(...))
+		local messagedc = text:format(...)
+		notifyTeam("[xban] " .. text:format(...))
+		if silent == false then
+			minetest.chat_send_all(minetest.colorize("#FF0000", messagedc))
+			discord.send(nil, ":bangbang: " .. messagedc)
+		end
 	end
 end
 
-local ACTION = make_logger("action")
-local WARNING = make_logger("warning")
-local ERROR = make_logger("error")
+local ACTION = make_logger("action", false)
+local ACTION_SILENT = make_logger("action", true)
+local WARNING = make_logger("warning", true)
+local ERROR = make_logger("error", true)
 
 local unit_to_secs = {
 	s = 1, m = 60, h = 3600,
@@ -100,7 +107,7 @@ function xban.ban_player(player, source, expires, reason) --> bool, err
 		if ip then
 			e.names[ip] = true
 		end
-		e.last_pos = pl:getpos()
+		e.last_pos = pl:get_pos()
 	end
 	e.reason = reason
 	e.time = rec.time
@@ -120,7 +127,7 @@ function xban.ban_player(player, source, expires, reason) --> bool, err
 	end
 	ACTION("%s bans %s until %s for reason: %s", source, player,
 	  date, reason)
-	ACTION("Banned Names/IPs: %s", concat_keys(e.names, ", "))
+	ACTION_SILENT("Banned Names/IPs: %s", concat_keys(e.names, ", "))
 	return true
 end
 
@@ -140,7 +147,7 @@ function xban.unban_player(player, source) --> bool, err
 	e.expires = nil
 	e.time = nil
 	ACTION("%s unbans %s", source, player)
-	ACTION("Unbanned Names/IPs: %s", concat_keys(e.names, ", "))
+	ACTION_SILENT("Unbanned Names/IPs: %s", concat_keys(e.names, ", "))
 	return true
 end
 
@@ -233,7 +240,6 @@ minetest.register_chatcommand("xban", {
 			return false, "Usage: /xban <player> <reason>"
 		end
 		local ok, e = xban.ban_player(plname, name, nil, reason)
-		return ok, ok and ("Banned %s."):format(plname) or e
 	end,
 })
 
@@ -252,8 +258,6 @@ minetest.register_chatcommand("xtempban", {
 		end
 		local expires = os.time() + time
 		local ok, e = xban.ban_player(plname, name, expires, reason)
-		return ok, (ok and ("Banned %s until %s."):format(
-				plname, os.date("%c", expires)) or e)
 	end,
 })
 
@@ -269,7 +273,6 @@ minetest.register_chatcommand("xunban", {
 			return
 		end
 		local ok, e = xban.unban_player(plname, name)
-		return ok, ok and ("Unbanned %s."):format(plname) or e
 	end,
 })
 

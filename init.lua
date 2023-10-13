@@ -24,7 +24,7 @@ local function make_logger(level, silent)
 		notifyTeam("[xban] " .. text:format(...))
 		if silent == false then
 			minetest.chat_send_all(minetest.colorize("#FF0000", messagedc))
-			discord.send(":bangbang: " .. messagedc)
+			archtec_matterbridge.send(":bangbang: " .. messagedc)
 		end
 	end
 end
